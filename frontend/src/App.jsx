@@ -1,74 +1,77 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-import {
-  getTasks,
-  assignTask,
-  completeTask,
-  invoiceTask
-} from './api.js'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { LanguageProvider } from '@/hooks/useLanguage';
+import ProtectedRoute from '@/components/layout/ProtectedRoute';
+import AppLayout from '@/components/layout/AppLayout';
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import Customers from '@/pages/Customers';
+import Employees from '@/pages/Employees';
+import Tasks from '@/pages/Tasks';
+import Reports from '@/pages/Reports';
+import Invoices from '@/pages/Invoices';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
-  const [tasks, setTasks] = useState([])
-
-  // Wait for tasks to load, then set them.
-  async function load() {
-    const data = await getTasks();
-    setTasks(data);
-  }
-
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    load();
-  }, []);
-
   return (
-    <div style={{ padding: 20}}>
-      <h1>Tasks</h1>
-
-      <button onClick={load}>Reload</button>
-
-      <ul>
-        {tasks.map(task => (
-          <li key={task.id} style={{ marginBottom: 10 }}>
-            <b>{task.description}</b><br />
-            Status: {task.status}<br />
-            Customer: {task.customer}<br />
-            Employee: {task.employee ?? "—"}<br />
-
-            <button onClick={async () => {
-              await assignTask(task.id, 1);
-              load();
-            }}>
-              Assign
-            </button>
-
-            <button onClick={async () => {
-              await completeTask(task.id);
-              load();
-            }}>
-              Complete
-            </button>
-
-            <button onClick={async () => {
-              await invoiceTask(task.id);
-              load();
-            }}>
-              Complete
-            </button>
-
-            <button onClick={async () => {
-              await invoiceTask(task.id);
-              load();
-            }}>
-              Invoice
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-    
-  )
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <LanguageProvider>
+            <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="tasks" element={<Tasks />} />
+              <Route
+                path="customers"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                    <Customers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="employees"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                    <Employees />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="reports" element={<Reports />} />
+              <Route
+                path="invoices"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <Invoices />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+            </Routes>
+          </LanguageProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;

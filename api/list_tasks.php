@@ -1,4 +1,15 @@
 <?php
+// Basic CORS handling for browser requests
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+
+// Reply to preflight (OPTIONS) without touching the database
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+    http_response_code(204);
+    exit;
+}
+
 require "db.php";
 
 $stmt = $pdo->query("
